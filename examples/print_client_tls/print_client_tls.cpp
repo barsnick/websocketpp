@@ -191,7 +191,7 @@ context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl) {
         // Here we load the CA certificates of all CA's that this client trusts.
         ctx->load_verify_file("ca-chain.cert.pem");
     } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
     return ctx;
 }
@@ -201,17 +201,30 @@ int main(int argc, char* argv[]) {
 
     std::string hostname = "localhost";
     std::string port = "9002";
+    std::string uri;
 
 
     if (argc == 3) {
         hostname = argv[1];
         port = argv[2];
+    } else if (argc == 2) {
+        hostname = argv[1];
+        size_t found = hostname.find("wss://", 0);
+        if (found == 0) {
+            uri = hostname;
+        } else {
+            port = "443";
+        }
     } else {
-        std::cout << "Usage: print_server_tls <hostname> <port>" << std::endl;
+        std::cerr << "Usage: print_server_tls <hostname> <port>\nor" << std::endl;
+        std::cerr << "Usage: print_server_tls <hostname>\nor" << std::endl;
+        std::cerr << "Usage: print_server_tls <uri>" << std::endl;
         return 1;
     }
-    
-    std::string uri = "wss://" + hostname + ":" + port;
+
+    if (uri == "") {
+        uri = "wss://" + hostname + ":" + port;
+    }
 
     try {
         // Set logging to be pretty verbose (everything except message payloads)
@@ -229,7 +242,7 @@ int main(int argc, char* argv[]) {
         websocketpp::lib::error_code ec;
         client::connection_ptr con = c.get_connection(uri, ec);
         if (ec) {
-            std::cout << "could not create connection because: " << ec.message() << std::endl;
+            std::cerr << "could not create connection because: " << ec.message() << std::endl;
             return 0;
         }
 
@@ -244,6 +257,6 @@ int main(int argc, char* argv[]) {
         // will exit when this connection is closed.
         c.run();
     } catch (websocketpp::exception const & e) {
-        std::cout << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
 }
