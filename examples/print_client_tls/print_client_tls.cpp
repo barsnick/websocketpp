@@ -186,12 +186,14 @@ context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl) {
 
 
         ctx->set_verify_mode(boost::asio::ssl::verify_peer);
-        ctx->set_verify_callback(bind(&verify_certificate, hostname, ::_1, ::_2));
+        // ctx->set_verify_callback(bind(&verify_certificate, hostname, ::_1, ::_2));
+        ctx->set_verify_callback(boost::asio::ssl::rfc2818_verification(hostname));
 
         // Here we load the CA certificates of all CA's that this client trusts.
-        ctx->load_verify_file("ca-chain.cert.pem");
-    } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        // ctx->load_verify_file("ca-chain.cert.pem");
+        ctx->set_default_verify_paths();
+    } catch (const std::exception &e) {
+        std::cerr << "Failed during TLS initialization: " << e.what() << std::endl;
     }
     return ctx;
 }
