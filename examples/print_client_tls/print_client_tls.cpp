@@ -201,20 +201,32 @@ context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl) {
 int main(int argc, char* argv[]) {
     client c;
 
-    std::string hostname = "localhost";
-    std::string port = "9002";
+    std::string hostname;
+    std::string port;
     std::string uri;
-
 
     if (argc == 3) {
         hostname = argv[1];
         port = argv[2];
     } else if (argc == 2) {
         hostname = argv[1];
-        size_t found = hostname.find("wss://", 0);
-        if (found == 0) {
+        // size_t found = hostname.find("wss://", 0);
+        // if (found == 0) { // a URI
+        size_t found = hostname.find("://", 0);
+        if (found != std::string::npos) { // a URI
             uri = hostname;
-        } else {
+            // hostname = hostname.substr(found + 6); // skip over wss://
+            hostname = hostname.substr(found + 3); // skip over ://
+            found = hostname.find_first_of("/");
+            if (found != std::string::npos) {
+                hostname = hostname.substr(0, found); // strip path starting at /
+            }
+            found = hostname.find_first_of(":");
+            if (found != std::string::npos) {
+                port = hostname.substr(found + 1);
+                hostname = hostname.substr(0, found); // strip port starting at :
+            }
+        } else { // not a URI, assume hostname, use default port
             port = "443";
         }
     } else {
@@ -227,6 +239,20 @@ int main(int argc, char* argv[]) {
     if (uri == "") {
         uri = "wss://" + hostname + ":" + port;
     }
+
+    std::cout << "Using hostname '" << hostname << "', port " << port << ", uri '" << uri << "'" << std::endl;
+
+    websocketpp::uri urIdentifier(uri);
+    if (!urIdentifier.get_valid()) {
+        std::cerr << "URI '" << uri << "' is not valid" << std::endl;
+    }
+    std::cout << "URI '" << uri
+              << " has scheme " << urIdentifier.get_scheme()
+              << ", secure " << (urIdentifier.get_secure() ? "yes" : "no")
+              << ", host " << urIdentifier.get_host()
+              << ", port " << urIdentifier.get_port()
+              << ", resource " << urIdentifier.get_resource()
+              << std::endl;
 
     try {
         // Set logging to be pretty verbose (everything except message payloads)
@@ -244,8 +270,8 @@ int main(int argc, char* argv[]) {
         websocketpp::lib::error_code ec;
         client::connection_ptr con = c.get_connection(uri, ec);
         if (ec) {
-            std::cerr << "could not create connection because: " << ec.message() << std::endl;
-            return 0;
+            std::cerr << "could not create connection to " << uri << " because: " << ec.message() << std::endl;
+            return 1;
         }
 
         // Note that connect here only requests a connection. No network messages are
