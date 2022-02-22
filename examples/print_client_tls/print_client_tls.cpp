@@ -30,6 +30,14 @@
 
 #include <iostream>
 
+// OpenSSL 1.0.x compatibility - taken from
+// https://wiki.openssl.org/index.php/Talk:OpenSSL_1.1.0_Changes
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(LIBRESSL_VERSION_NUMBER)
+#define EVP_MD_CTX_new EVP_MD_CTX_create
+#define EVP_MD_CTX_free EVP_MD_CTX_destroy
+#define ASN1_STRING_get0_data(x) ASN1_STRING_data(x)
+#endif
+
 typedef websocketpp::client<websocketpp::config::asio_tls_client> client;
 typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
 
